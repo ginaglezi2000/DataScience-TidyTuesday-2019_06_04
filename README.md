@@ -1,5 +1,4 @@
-## Ramen data set obtained from TidyTuesday at:
-https://github.com/rfordatascience/tidytuesday
+## Ramen data set obtained from #TidyTuesday
 
 ### Data
 3180 ramen ratings from The Ramen Rater.CSV version available at: https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-04/ramen_ratings.csv
