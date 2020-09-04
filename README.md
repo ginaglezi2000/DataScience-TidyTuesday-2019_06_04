@@ -1,4 +1,4 @@
-## #TidyTuesday: Ramen dat set
+## #TidyTuesday: Ramen dataset
 A report from ramen dataset is available at ramen.pdf. Below are some of the main takeaways.
 
 ### Data
