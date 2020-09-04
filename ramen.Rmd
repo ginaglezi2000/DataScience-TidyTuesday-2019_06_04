@@ -1,0 +1,125 @@
+---
+title: "Ramen data set from #TidyTuesday"
+author: "Georgina Gonzalez"
+date: "6/6/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+
+
+ramen <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-04/ramen_ratings.csv")
+
+attach(ramen)
+```
+
+## Introduction
+Practice to summarize and arrange data to make meaningful charts with ggplot2, tidyr, dplyr, and other tools in the tidyverse ecosystem.
+
+## Data
+3180 ramen ratings from [The Ramen Rater](https://www.theramenrater.com/resources-2/the-list). CSV version available at:
+https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-04/ramen_ratings.csv
+
+Variable (class):		    |Description  
+--------------------------|--------------------------------------------------
+review_number (integer)	|Ramen review number, increasing from 1  
+brand (character)     	|Brand of the ramen  
+variety (character)   	|The ramen variety, eg a flavor, style, ingredient  
+style (character)       |Style of container (cup, pack, tray,...)  
+country (character)   	|Origin country of the ramen brand  
+stars (double)        	|0-5 rating of the ramen, 5 is best, 0 is worst  
+
+
+## Missing Values
+There are only 17 missing values involving features: stars, style and review number.
+
+```{r echo=FALSE, results='asis'}
+# results='asis' stops knitr from processing the output any further
+'Total number of missing values in Ramen data set:' %>% paste(sum(is.na(ramen))) %>% print()  
+#print('Missing values by variable:')
+#ramen %>% is.na() %>% apply( .,2,sum) %>% print()
+ramen %>% is.na() %>% apply( .,2,sum) %>% kable(caption="Missing values by variable:") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% column_spec(.,1:2, width = c("5em", "3em"))
+```
+## General statistics
+
+```{r echo=FALSE}
+# General statistics
+'Countries considered:' %>% paste(.,  n_distinct(country)) %>% print()
+'Number of distinct styles:' %>% paste(.,  n_distinct(style)) %>% print()
+'Number of distinct brands:' %>% paste(.,  n_distinct(brand)) %>% print()
+stars %>% mean(na.rm=TRUE) %>% round(1) %>% paste('Average stars: ', .) %>% print()
+hist(stars)
+```
+
+## Brand
+```{r echo=FALSE}
+# by brand
+#print('Varieties of ramen by brand:')
+brand.variety <- ramen %>% group_by(brand) %>% summarise(Freq=n())
+#print(brand.variety)
+brand.variety$Freq %>% mean(na.rm=TRUE) %>% round() %>% paste('Average number of varieties by brand',.) %>% print()
+```
+## Style
+```{r echo=FALSE}
+# by style
+style.freqs <- ramen %>% group_by(style) %>% summarise(Freq=n(), Rel.freq=round(n()/nrow(ramen)*100,1), Avg=round(mean(stars, na.rm=TRUE),1), SD=round(sd(stars, na.rm=TRUE),2)) %>% arrange(desc(Freq)) 
+style.freqs %>% kable(caption='Average stars by style') %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+stars5 <- filter(ramen,stars==5) %>% group_by(style) %>% summarise(Freq5=n())
+freqsVS5.style <- select(style.freqs, style, Freq) %>% full_join(stars5, by="style") %>% mutate("%"=round(Freq5/Freq*100,1))
+freqsVS5.style %>% kable(caption = 'Ramen rated with 5 stars by style and % vs cases within style') %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+
+```
+## Country
+```{r echo=FALSE}
+# By country
+country.freqs <- ramen %>% group_by(country) %>% summarise(Freq=n()) %>% arrange(desc(Freq)) %>% mutate(Rel.freq=round(Freq/sum(Freq)*100,1)) %>% mutate(Cum.rel.freq=cumsum(Rel.freq))
+
+short.country.freqs <- filter(country.freqs, Rel.freq>10) 
+short.country.freqs <- rbind(short.country.freqs, c('Other', sum(country.freqs$Freq)-sum(short.country.freqs$Freq),100-sum(short.country.freqs$Rel.freq),100))
+short.country.freqs %>% kable(caption='Ramen rated by country') %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+lbls <- paste(short.country.freqs$country, '\n', short.country.freqs$Rel.freq, sep="")
+pie(as.numeric(short.country.freqs$Rel.freq), 
+    labels=lbls,
+    main='Ramen rated by country')
+
+top.countries <- filter(ramen, country %in% c('Japan', 'United States', 'South Korea', 'Taiwan')) %>% group_by(country)
+summarise(top.countries, Avg=round(mean(stars, na.rm=TRUE),1), SD=round(sd(stars, na.rm=TRUE),2)) %>% kable(caption='Average stars by country') %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+
+# top.countries by style 
+top.countries.style <- filter(ramen, country %in% c('Japan', 'United States', 'South Korea', 'Taiwan')) %>% filter(., style %in% c('Pack', 'Bowl', 'Cup', 'Tray', 'Box')) %>% group_by(country, style)
+sum.top.countries.style <- summarise(top.countries.style, Freq=n() ,Avg=round(mean(stars, na.rm=TRUE),1), SD=round(sd(stars, na.rm=TRUE),2))
+#sum.top.countries.style %>% kable(caption='Average stars by country and style') %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+
+# top.countries by style with stars==5
+top.countries.style.5 <- filter(ramen, country %in% c('Japan', 'United States', 'South Korea', 'Taiwan')) %>% filter(., style %in% c('Pack', 'Bowl', 'Cup', 'Tray', 'Box')) %>% filter(., stars==5) %>%group_by(country, style)
+sum.top.countries.style.5 <- summarise(top.countries.style.5, Freq5=n())
+#sum.top.countries.style.5 %>% kable(caption='Varieties with 5 stars by country and style') %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+
+# merging
+freqsVS5.country.style <- sum.top.countries.style %>% full_join(sum.top.countries.style.5, by=c("country","style")) %>% mutate("%"=round(Freq5/Freq*100,1))
+freqsVS5.country.style %>% kable(caption='Varieties by country and style: Freq5=varieties rated with 5 stars, % 5 stars vs cases within style') %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+The highest rating goes for ramen in box in Japan and there are 6 leading brands (with 5 stars)
+```{r echo=FALSE}
+# Varieties with 5 stars for ramen in box in Japan
+filter(ramen, country=="Japan", style=="Box", stars==5) %>% kable(caption="Ramen in box in Japan with 5 stars") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+
+## Summary
+* Ramen has been tested in 44 countries
+* There are 9 diffent styles of ramen where "pack" accounts for more than half of the ratings, followed by "bowl" and "cup"
+* 456 different brands had been tested
+* The total rating average is 3.7 stars (out of 5)
+* Almost 600 hundred varieties had been rated with 5 stars (out of 3180)
+* The average number of varieties by brand is 7
+* the mayority (59%) of the varieties from the "box" have a 5 stars rate, while the others have less than 18% 5 stars
+* Japan, United States, South Korea and Taiwan account for half of the varieties tested
+* Differences in ratings become apparent until the information is analized by country and style. Japan with ramen in box stands out with an average of 4.9 stars. Although there are only 8 varieties rated, 6 of them have 5 stars and they correspond to 3 brands: Island Foods, Nagatanien and MyKuali
+
+
