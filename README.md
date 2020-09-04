@@ -1,5 +1,5 @@
-## Ramen data set obtained from #TidyTuesday
-A report from the ramen data is available at ramen.pdf. However, below are some of the main takeaways.
+## #TidyTuesday: Ramen dat set
+A report from ramen dataset is available at ramen.pdf. Below are some of the main takeaways.
 
 ### Data
 3180 ramen ratings from The Ramen Rater.CSV version available at: https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-04/ramen_ratings.csv
